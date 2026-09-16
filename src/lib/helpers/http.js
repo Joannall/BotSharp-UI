@@ -1,106 +1,6 @@
 import axios from 'axios';
-import { apiStatusStore, getUserStore, globalErrorStore, loaderStore, userStore, getTenantId } from '$lib/helpers/store.js';
-import { renewToken } from '$lib/services/auth-service';
-import { delay } from './utils/common';
+import { apiStatusStore, getUserStore, globalErrorStore, loaderStore, getTenantId } from '$lib/helpers/store.js';
 
-
-const retryQueue = {
-    /** @type {{config: import('axios').InternalAxiosRequestConfig, resolve: (value: any) => void, reject: (reason?: any) => void}[]} */
-    queue: [],
-
-    /** @type {boolean} */
-    isRefreshingToken: false,
-
-    /** @type {number} */
-    timeout: 200,
-
-    /** @type {number} */
-    maxRenewTokenCount: 30,
-
-    /**
-     * refresh access token
-     * @param {string} token
-     * @returns {Promise<string>}
-     */
-    refreshAccessToken(token) {
-        return new Promise((resolve, reject) => {
-            renewToken(token, (newToken) => resolve(newToken), () => reject(new Error('Failed to refresh token')));
-        });
-    },
-
-    /** @param {{config: import('axios').InternalAxiosRequestConfig, resolve: (value: any) => void, reject: (reason?: any) => void}} item */
-    enqueue(item) {
-        this.queue.push(item);
-        console.log('queue', this.queue.length);
-        if (!this.isRefreshingToken) {
-            const user = getUserStore();
-            if (!isTokenExired(user.expires)) {
-                this.dequeue(user.token);
-            } else {
-                this.isRefreshingToken = true;
-                user.renew_token_count = (user.renew_token_count || 0) + 1;
-                // @ts-ignore
-                userStore.set(user);
-                this.refreshAccessToken(user?.token || '')
-                    .then((newToken) => {
-                        this.isRefreshingToken = false;
-                        const promise = this.dequeue(newToken);
-                        return promise;
-                    })
-                    .catch((err) => {
-                        this.isRefreshingToken = false;
-                        // Reject all queued requests
-                        while (this.queue.length > 0) {
-                            const item = this.queue.shift();
-                            if (item) {
-                                item.reject(err);
-                            }
-                        }
-                        redirectToLogin();
-                    });
-            }
-        }
-    },
-
-    /**
-     * @param {string} newToken
-     * @returns {Promise<void>}
-     */
-    dequeue(newToken) {
-        let chain = Promise.resolve();
-        while (this.queue.length > 0) {
-            const item = this.queue.shift();
-            if (!item?.config) {
-                continue;
-            }
-
-            const { config } = item;
-            // @ts-ignore
-            config.headers = config.headers || {};
-            // @ts-ignore
-            config.headers.Authorization = `Bearer ${newToken}`;
-                        const tenantId = getTenantId();
-            if (tenantId) {
-                // @ts-ignore
-                config.headers['__tenant'] = tenantId;
-            }
-
-            chain = chain.then(() => delay(this.timeout))
-                         .then(() => {
-                            return new Promise((resolve) => {
-                                axios(config).then((response) => {
-                                    resolve();
-                                    item.resolve(response);
-                                }).catch((err) => {
-                                    resolve();
-                                    item.reject(err);
-                                });
-                            });
-                         });
-        }
-        return chain;
-    }
-};
 
 // Add a request interceptor to attach authentication tokens or headers
 axios.interceptors.request.use(
@@ -119,7 +19,6 @@ axios.interceptors.request.use(
                 config.headers['__tenant'] = tenantId;
             }
         } else {
-            retryQueue.queue = [];
             redirectToLogin();
         }
         return config;
@@ -145,22 +44,13 @@ axios.interceptors.response.use(
         const originalRequest = error?.config || {};
         const user = getUserStore();
 
-        if (!user?.token || user.renew_token_count >= retryQueue.maxRenewTokenCount) {
-            retryQueue.queue = [];
+        // No token, an expired token or a 401 all mean the session is over: send the user to login.
+        if (!user?.token || error?.response?.status === 401 || isTokenExired(user.expires)) {
             redirectToLogin();
             return Promise.reject(error);
         }
 
-        // If token expired or 401 returned, attempt a single token refresh and retry requests in queue.
-        if ((error?.response?.status === 401 || isTokenExired(user.expires))
-            && originalRequest
-            && !originalRequest._retried
-            && !originalRequest.url.includes('renew-token')) {
-            originalRequest._retried = true;
-            return new Promise((resolve, reject) => {
-                retryQueue.enqueue({ config: originalRequest, resolve, reject });
-            });
-        } else if (!skipGlobalError(originalRequest)) {
+        if (!skipGlobalError(originalRequest)) {
             globalErrorStore.set(true);
             setTimeout(() => {
                 globalErrorStore.set(false);
