@@ -3745,6 +3745,19 @@
         display: none;
     }
 
+    /* CollapsibleText lays its viewport out as a flex column that shrink-wraps
+       its child, which is what gives a chat bubble its width. A log row is not
+       a bubble: it is a full-width block, so without this the rendered markdown
+       — and any code block inside it — was sized to the longest line of text
+       rather than to the row, leaving a JSON dump squeezed into a fraction of
+       the available width. */
+    & .ctxt,
+    & .ctxt-view,
+    & .ctxt-content {
+        width: 100%;
+    }
+
+
     & pre {
         scrollbar-width: none;
         background:
