@@ -21,8 +21,8 @@
  * @property {string?} [reasoning_effort_level]
  * @property {string?} [response_format]
  * @property {any} [image_composition]
- * @property {any} [audio_transcription]
  * @property {any} [realtime]
+ * @property {any} [live]
  */
 
 /**

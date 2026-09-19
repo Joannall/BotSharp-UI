@@ -20,12 +20,12 @@
     export function fetchLlmConfig() {
         const chatConfig = chatConfigCmp?.fetchConfig();
         const imageCompositionConfig = imageCompositionConfigCmp?.fetchConfig();
-        const audioTranscriptionConfig = audioTranscriptionConfigCmp?.fetchConfig();
+        const liveConfig = liveConfigCmp?.fetchConfig();
         const realtimeConfig = realtimeConfigCmp?.fetchConfig();
         return {
             ...chatConfig,
             image_composition: imageCompositionConfig ? {...imageCompositionConfig} : null,
-            audio_transcription: audioTranscriptionConfig ? {...audioTranscriptionConfig} : null,
+            live: liveConfig ? {...liveConfig} : null,
             realtime: realtimeConfig ? {...realtimeConfig} : null
         };
     }
@@ -35,7 +35,7 @@
     /** @type {any} */
     let imageCompositionConfigCmp = $state(null);
     /** @type {any} */
-    let audioTranscriptionConfigCmp = $state(null);
+    let liveConfigCmp = $state(null);
     /** @type {any} */
     let realtimeConfigCmp = $state(null);
 
@@ -71,12 +71,12 @@
                 {handleAgentChange}
             />
             <LlmBasicConfig
-                title="Audio Transcription"
-                bind:this={audioTranscriptionConfigCmp}
+                title="Live"
+                bind:this={liveConfigCmp}
                 llmConfigOptions={llmConfigs}
-                llmConfig={agent.llm_config?.audio_transcription}
-                modelType={LlmModelType.Audio}
-                modelCapability={LlmModelCapability.AudioTranscription}
+                llmConfig={agent.llm_config?.live}
+                modelType={LlmModelType.Live}
+                modelCapability={LlmModelCapability.Live}
                 {handleAgentChange}
             />
             <RealtimeConfig
