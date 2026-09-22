@@ -1,5 +1,6 @@
 import { PUBLIC_SERVICE_URL } from "$env/static/public";
 import { buildConversationUserStates } from "$lib/helpers/conversation";
+import { getUserStore } from "$lib/helpers/store";
 import { AudioRecordingWorklet } from "$lib/helpers/realtime/pcmProcessor";
 
 // @ts-ignore
@@ -37,7 +38,7 @@ export const realtimeChat = {
     start(agentId, conversationId) {
         reset();
         const wsUrl = buildWebsocketUrl();
-        socket = new WebSocket(`${wsUrl}/chat/stream/${agentId}/${conversationId}`);
+        socket = new WebSocket(`${wsUrl}/chat/stream/${agentId}/${conversationId}${buildUserQuery()}`);
       
         socket.onopen = async () => {
             console.log("WebSocket connected");
@@ -130,6 +131,21 @@ export const realtimeChat = {
     }
 };
 
+
+/**
+ * Identifies the signed-in user on the handshake.
+ *
+ * A browser cannot set headers on a WebSocket, so no bearer token reaches /chat/stream and the
+ * server would otherwise see nobody for the whole conversation. It goes in the query string
+ * rather than as a path segment because the server reads agentId and conversationId from the END
+ * of the path, so an extra segment would shift both.
+ *
+ * @returns {string}
+ */
+function buildUserQuery() {
+    const user = getUserStore();
+    return user?.id ? `?user-id=${encodeURIComponent(user.id)}` : '';
+}
 
 function buildWebsocketUrl() {
     let url = '';
