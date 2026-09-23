@@ -55,8 +55,7 @@
 <style>
     /* Viewport-fixed frosted overlay that flex-centers the spinner so the
        loader always sits in the middle of the main content area, regardless
-       of any positioned ancestor. The left edge tracks the vertical menu's
-       width so the sidebar stays uncovered */
+       of any positioned ancestor. By default it covers the whole viewport. */
     .loader {
         position: fixed;
         inset: 0;
@@ -75,12 +74,16 @@
         background-color: rgb(17 24 39 / 0.55);
     }
 
+    /* Only the vertical layout renders a fixed sidebar, and there the left edge
+       tracks its width so the menu stays uncovered. Standalone routes such as
+       /chat/[agentId]/[conversationId] have no menu, so the overlay must span the
+       full viewport there instead of leaving a dead strip on the left. */
     @media (min-width: 1024px) {
-        .loader {
+        :global(body:has(.vertical-menu)) .loader {
             left: var(--sidebar-width);
         }
 
-        :global(body.vertical-collpsed) .loader {
+        :global(body.vertical-collpsed:has(.vertical-menu)) .loader {
             left: var(--sidebar-collapsed-width);
         }
     }

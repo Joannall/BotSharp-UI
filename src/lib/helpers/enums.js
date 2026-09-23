@@ -228,7 +228,8 @@ const llmModelType = {
     Embedding: "Embedding",
     Audio: "Audio",
     Realtime: "Realtime",
-    Web: "Web"
+    Web: "Web",
+    Live: "Live"
 };
 export const LlmModelType = Object.freeze(llmModelType);
 
@@ -246,7 +247,8 @@ const llmModelCapability = {
     AudioGeneration: "AudioGeneration",
     Realtime: "Realtime",
     WebSearch: "WebSearch",
-    PdfReading: "PdfReading"
+    PdfReading: "PdfReading",
+    Live: "Live"
 };
 export const LlmModelCapability = Object.freeze(llmModelCapability);
 
